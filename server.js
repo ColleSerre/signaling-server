@@ -76,11 +76,17 @@ io.on("connection", function (socket) {
         var _a, data, error;
         return __generator(this, function (_b) {
             switch (_b.label) {
-                case 0: return [4 /*yield*/, useSupabase_1.default.from("matchmaking").insert({
-                        id: arg.id,
-                        offerDescription: arg.offerDescription,
-                        open_to_handshake: arg.open_to_handshake,
-                    })];
+                case 0:
+                    // more user information here later (socials, username, profile_picture, etc.)
+                    if (!arg.id || arg.id.slice(0, 5) !== "user_") {
+                        callback("invalid id");
+                        return [2 /*return*/];
+                    }
+                    return [4 /*yield*/, useSupabase_1.default.from("matchmaking").insert({
+                            id: arg.id,
+                            offerDescription: arg.offerDescription,
+                            open_to_handshake: arg.open_to_handshake,
+                        })];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error) {
