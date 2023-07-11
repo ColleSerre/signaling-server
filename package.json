@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start-server": "tsc server.ts && node server.js"
+    "start": "tsc index.ts && node index.js"
   },
   "keywords": [],
   "author": "",
