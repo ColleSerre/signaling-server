@@ -28,7 +28,7 @@ io.on("connection", (socket) => {
     try {
       io.emit("new_user", {
         id: arg.id,
-        offferDescription: arg.offerDescription,
+        offerDescription: arg.offerDescription,
         // more user information here later (socials, username, profile_picture, etc.)
       });
       callback("success");
