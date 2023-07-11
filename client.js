@@ -79,6 +79,25 @@ socket.on("server_answer", function (arg) {
         console.log("Friend found!", arg.remoteID);
         console.log(arg.answerDescription);
         remoteID = arg.remoteID;
-        // we can now send ice candidates to the other peer
+        // we can now send ice candidates to the other peer without passing through the server
+        socket.emit("client_send_ice_candidate_private", {
+            id: remoteID,
+            remoteID: id,
+            ice_candidate: "ice_candidate",
+        });
+    }
+});
+socket.on("server_transmit_ice_candidate_private", function (arg) {
+    if (arg.id === id) {
+        console.log("received ice candidate from the other peer via server");
+        console.log(arg.ice_candidate);
+        // process ice candidate here
+        // send ice candidate to the other peer
+        socket.emit("client_send_ice_candidate_private", {
+            id: arg.remoteID,
+            remoteID: id,
+            ice_candidate: "ice_candidate",
+        });
+        console.log("sent ice candidate to the other peer via server");
     }
 });
