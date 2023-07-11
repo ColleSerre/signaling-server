@@ -16,12 +16,7 @@ const io = new Server(httpServer, {
   },
 });
 
-const emitOffer = async (peer: any) => {
-  io.emit("server_offer", {
-    id: peer.id, // id of the initial offer holder
-    offerDescription: peer.offerDescription, // the offer description
-  });
-};
+const emitOffer = async (peer: any) => {};
 
 const matchmaking = supabase
   .channel("any")
@@ -29,8 +24,13 @@ const matchmaking = supabase
     "postgres_changes",
     { event: "INSERT", schema: "public", table: "matchmaking" },
     async (payload) => {
-      // new offers are emitted to all clients on ws, they all check if they are not the offer holder and if they are open to handshake then answer the offer
-      emitOffer(payload.new);
+      console.log(payload);
+
+      // new offers are emitted to all clients on ws
+      io.emit("server_offer", {
+        id: payload.new.id, // id of the initial offer holder
+        offerDescription: payload.new.offerDescription, // the offer description
+      });
     }
   );
 
@@ -40,8 +40,12 @@ const matchmaking1 = supabase
     "postgres_changes",
     { event: "UPDATE", schema: "public", table: "matchmaking" },
     async (payload) => {
-      // new offers are emitted to all clients on ws, they all check if they are not the offer holder and if they are open to handshake then answer the offer
-      emitOffer(payload.new);
+      console.log(payload);
+
+      io.emit("server_offer", {
+        id: payload.new.id, // id of the initial offer holder
+        offerDescription: payload.new.offerDescription, // the offer description
+      });
     }
   );
 
