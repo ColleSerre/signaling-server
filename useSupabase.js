@@ -11,3 +11,4 @@ var supabase = (0, supabase_js_1.createClient)("https://ucjolalmoughwxjvuxkn.sup
     },
 });
 exports.default = supabase;
+// export default supabase;

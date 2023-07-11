@@ -38,6 +38,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var socket_io_1 = require("socket.io");
 var useSupabase_1 = require("./useSupabase");
+var express = require("express");
+var path = require("path");
+var createServer = require("http").createServer;
+var app = express();
+app.use(express.static(path.join(__dirname, "/public")));
+var server = createServer(app);
+var io = new socket_io_1.Server(server);
 var emitOffer = function (peer) { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
         io.emit("server_offer", {
@@ -57,7 +64,6 @@ var matchmaking = useSupabase_1.default
         return [2 /*return*/];
     });
 }); });
-var io = new socket_io_1.Server(3000);
 matchmaking.subscribe();
 io.on("connection", function (socket) {
     socket.on("enter_matchmaking", function (arg, callback) { return __awaiter(void 0, void 0, void 0, function () {
@@ -115,8 +121,11 @@ io.on("connection", function (socket) {
     });
 });
 io.on("listening", function () {
-    console.log("listening on port 3000");
+    console.log("listening on port 8080");
 });
 io.on("error", function (err) {
     console.log(err);
+});
+server.listen(8080, function () {
+    console.log("Listening on http://0.0.0.0:8080");
 });

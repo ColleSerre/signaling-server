@@ -1,5 +1,15 @@
 import { Server } from "socket.io";
 import supabase from "./useSupabase";
+const express = require("express");
+const path = require("path");
+const { createServer } = require("http");
+
+const app = express();
+app.use(express.static(path.join(__dirname, "/public")));
+
+const server = createServer(app);
+
+const io = new Server(server);
 
 const emitOffer = async (peer: any) => {
   io.emit("server_offer", {
@@ -19,8 +29,6 @@ const matchmaking = supabase
       emitOffer(payload.new);
     }
   );
-
-const io = new Server(3000);
 
 matchmaking.subscribe();
 
@@ -80,9 +88,13 @@ io.on("connection", (socket) => {
 });
 
 io.on("listening", () => {
-  console.log("listening on port 3000");
+  console.log("listening on port 8080");
 });
 
 io.on("error", (err) => {
   console.log(err);
+});
+
+server.listen(8080, function () {
+  console.log("Listening on http://0.0.0.0:8080");
 });
