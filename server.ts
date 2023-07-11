@@ -73,9 +73,10 @@ io.on("connection", (socket) => {
   */
 
   socket.on("client_answer", (arg) => {
-    io.to(arg.id).emit("server_answer", {
-      id: arg.id,
-      remoteID: arg.remoteID,
+    console.log("transmiting answer to initial peer", arg);
+    io.emit("server_answer", {
+      id: arg.id, // id of the initial sender
+      remoteID: arg.remoteID, // id of the responder
       answerDescription: arg.answerDescription,
     });
   });
