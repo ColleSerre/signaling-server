@@ -33,6 +33,8 @@ const matchmaking = supabase
 matchmaking.subscribe();
 
 io.on("connection", (socket) => {
+  console.log("a user connected");
+
   socket.on("enter_matchmaking", async (arg, callback) => {
     // more user information here later (socials, username, profile_picture, etc.)
 
