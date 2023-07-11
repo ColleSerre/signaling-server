@@ -43,7 +43,7 @@ var emitOffer = function (peer) { return __awaiter(void 0, void 0, void 0, funct
         io.emit("server_offer", {
             id: peer.id,
             open_to_handshake: peer.open_to_handshake,
-            offerDescription: peer.offerDescription,
+            offerDescription: peer.offerDescription, // the offer description
         });
         return [2 /*return*/];
     });
@@ -52,6 +52,7 @@ var matchmaking = useSupabase_1.default
     .channel("any")
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "matchmaking" }, function (payload) { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
+        // new offers are emitted to all clients on ws, they all check if they are not the offer holder and if they are open to handshake then answer the offer
         emitOffer(payload.new);
         return [2 /*return*/];
     });
@@ -60,24 +61,28 @@ var io = new socket_io_1.Server(3000);
 matchmaking.subscribe();
 io.on("connection", function (socket) {
     socket.on("enter_matchmaking", function (arg, callback) { return __awaiter(void 0, void 0, void 0, function () {
-        var peerDescription, _a, data, error;
+        var _a, data, error;
         return __generator(this, function (_b) {
             switch (_b.label) {
-                case 0:
-                    peerDescription = arg.localDescription;
-                    return [4 /*yield*/, useSupabase_1.default.from("matchmaking").insert({
-                            id: socket.id,
-                            offerDescription: { peerDescription: peerDescription },
-                            open_to_handshake: arg.open_to_handshake,
-                        })];
+                case 0: return [4 /*yield*/, useSupabase_1.default.from("matchmaking").insert({
+                        id: arg.id,
+                        offerDescription: arg.localDescription,
+                        open_to_handshake: arg.open_to_handshake,
+                    })];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error) {
-                        console.log(error);
-                        callback(false);
+                        if ((error === null || error === void 0 ? void 0 : error.code) === "23505") {
+                            console.log("already in matchmaking db");
+                            callback(undefined);
+                        }
+                        else {
+                            console.log(error);
+                            callback(false);
+                        }
                     }
                     else {
-                        console.log("Successfully entered matchmaking db");
+                        console.log(arg.id + " successfully entered matchmaking db");
                         callback(true);
                     }
                     return [2 /*return*/];
@@ -89,12 +94,24 @@ io.on("connection", function (socket) {
     it is being sent privately to the initial offer holder
     */
     socket.on("client_answer", function (arg) {
-        socket.join(arg.id);
         io.to(arg.id).emit("server_answer", {
             id: arg.id,
             remoteID: arg.remoteID,
             answerDescription: arg.answerDescription,
         });
+    });
+    /*
+    a peer has found a match (they exchanged offers already) and is now sending ice candidates privately to the other peer
+    */
+    socket.on("client_send_ice_candidate_private", function (arg) {
+        console.log(arg);
+        socket.join(arg.id);
+        io.to(arg.id).emit("server_transmit_ice_candidate_private", {
+            id: arg.id,
+            remoteID: arg.remoteID,
+            ice_candidate: arg.ice_candidate,
+        });
+        console.log("transmitted ice candidate to another peer");
     });
 });
 io.on("listening", function () {
