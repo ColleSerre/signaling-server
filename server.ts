@@ -20,7 +20,6 @@ const emitOffer = async (peer: any) => {
   io.emit("server_offer", {
     id: peer.id, // id of the initial offer holder
     offerDescription: peer.offerDescription, // the offer description
-    open_to_handshake: peer.open_to_handshake, // if the initial offer holder is open to handshake
   });
 };
 
