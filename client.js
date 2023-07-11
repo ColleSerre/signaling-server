@@ -37,19 +37,25 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var socket_io_client_1 = require("socket.io-client");
-var socket = (0, socket_io_client_1.io)("ws://localhost:3000");
+var socket = (0, socket_io_client_1.io)("ws://localhost:8080");
 var id;
 var remoteID = null;
-socket.emit("enter_matchmaking", {
-    id: socket.id,
-    localDescription: "offer",
-    open_to_handshake: true,
-}, function (response_from_server) {
-    id = socket.id;
-    if (response_from_server) {
-        console.log("server received the initial offer");
-        console.log("Successfully entered matchmaking db");
-    }
+var candidates = [];
+socket.on("connect", function () {
+    socket.emit("enter_matchmaking", {
+        id: socket.id,
+        localDescription: "offer",
+        open_to_handshake: true,
+    }, function (response_from_server) {
+        id = socket.id;
+        if (response_from_server) {
+            console.log("server received the initial offer");
+            console.log("Successfully entered matchmaking db");
+        }
+        else {
+            console.log(response_from_server);
+        }
+    });
 });
 // the offer found an interested peer that is open to handshake
 socket.on("server_offer", function (arg) { return __awaiter(void 0, void 0, void 0, function () {
@@ -80,6 +86,7 @@ socket.on("server_answer", function (arg) {
         console.log(arg.answerDescription);
         remoteID = arg.remoteID;
         // we can now send ice candidates to the other peer without passing through the server
+        console.log("sending ice candidates to", remoteID); // debug, check if remoteID is not null 👨‍🌾
         socket.emit("client_send_ice_candidate_private", {
             id: remoteID,
             remoteID: id,
@@ -87,6 +94,7 @@ socket.on("server_answer", function (arg) {
         });
     }
 });
+//  the other peer sent an ice candidate
 socket.on("server_transmit_ice_candidate_private", function (arg) {
     if (arg.id === id) {
         console.log("received ice candidate from the other peer via server");

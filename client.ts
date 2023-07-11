@@ -1,28 +1,32 @@
 import { io } from "socket.io-client";
 import supabase from "./useSupabase";
 
-const socket = io("ws://localhost:3000");
+const socket = io("ws://localhost:8080");
 let id: string;
 
 let remoteID: string | null = null;
 let candidates: any[] = [];
 
-socket.emit(
-  "enter_matchmaking",
-  {
-    id: socket.id,
-    localDescription: "offer",
-    open_to_handshake: true,
-  },
-  (response_from_server: boolean) => {
-    id = socket.id;
+socket.on("connect", () => {
+  socket.emit(
+    "enter_matchmaking",
+    {
+      id: socket.id,
+      localDescription: "offer",
+      open_to_handshake: true,
+    },
+    (response_from_server) => {
+      id = socket.id;
 
-    if (response_from_server) {
-      console.log("server received the initial offer");
-      console.log("Successfully entered matchmaking db");
+      if (response_from_server) {
+        console.log("server received the initial offer");
+        console.log("Successfully entered matchmaking db");
+      } else {
+        console.log(response_from_server);
+      }
     }
-  }
-);
+  );
+});
 
 // the offer found an interested peer that is open to handshake
 socket.on("server_offer", async (arg) => {

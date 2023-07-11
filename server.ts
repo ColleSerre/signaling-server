@@ -40,7 +40,7 @@ io.on("connection", (socket) => {
 
     const { data, error } = await supabase.from("matchmaking").insert({
       id: arg.id,
-      offerDescription: arg.localDescription,
+      offerDescription: arg.offerDescription,
       open_to_handshake: arg.open_to_handshake,
     });
 
@@ -50,7 +50,7 @@ io.on("connection", (socket) => {
         callback(undefined);
       } else {
         console.log(error);
-        callback(false);
+        callback(error);
       }
     } else {
       console.log(arg.id + " successfully entered matchmaking db");

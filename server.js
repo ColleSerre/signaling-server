@@ -66,13 +66,14 @@ var matchmaking = useSupabase_1.default
 }); });
 matchmaking.subscribe();
 io.on("connection", function (socket) {
+    console.log("a user connected");
     socket.on("enter_matchmaking", function (arg, callback) { return __awaiter(void 0, void 0, void 0, function () {
         var _a, data, error;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, useSupabase_1.default.from("matchmaking").insert({
                         id: arg.id,
-                        offerDescription: arg.localDescription,
+                        offerDescription: arg.offerDescription,
                         open_to_handshake: arg.open_to_handshake,
                     })];
                 case 1:
@@ -84,7 +85,7 @@ io.on("connection", function (socket) {
                         }
                         else {
                             console.log(error);
-                            callback(false);
+                            callback(error);
                         }
                     }
                     else {
