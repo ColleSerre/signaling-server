@@ -1,21 +1,26 @@
 import { Server } from "socket.io";
 import supabase from "./useSupabase";
-const express = require("express");
 const path = require("path");
 const { createServer } = require("http");
 
-const app = express();
-app.use(express.static(path.join(__dirname, "/public")));
+const httpServer = createServer();
 
-const server = createServer(app);
+httpServer.on("listening", () => {
+  console.log("listening on port 8080");
+});
 
-const io = new Server(server);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 
 const emitOffer = async (peer: any) => {
   io.emit("server_offer", {
     id: peer.id, // id of the initial offer holder
-    open_to_handshake: peer.open_to_handshake, // if the initial offer holder is open to handshake
     offerDescription: peer.offerDescription, // the offer description
+    open_to_handshake: peer.open_to_handshake, // if the initial offer holder is open to handshake
   });
 };
 
@@ -37,6 +42,10 @@ io.on("connection", (socket) => {
 
   socket.on("enter_matchmaking", async (arg, callback) => {
     // more user information here later (socials, username, profile_picture, etc.)
+    if (!arg.id || arg.id.slice(0, 5) !== "user_") {
+      callback("invalid id");
+      return;
+    }
 
     const { data, error } = await supabase.from("matchmaking").insert({
       id: arg.id,
@@ -97,6 +106,4 @@ io.on("error", (err) => {
   console.log(err);
 });
 
-server.listen(8080, function () {
-  console.log("Listening on http://0.0.0.0:8080");
-});
+httpServer.listen(8080);

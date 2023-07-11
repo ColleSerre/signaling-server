@@ -38,19 +38,24 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var socket_io_1 = require("socket.io");
 var useSupabase_1 = require("./useSupabase");
-var express = require("express");
 var path = require("path");
 var createServer = require("http").createServer;
-var app = express();
-app.use(express.static(path.join(__dirname, "/public")));
-var server = createServer(app);
-var io = new socket_io_1.Server(server);
+var httpServer = createServer();
+httpServer.on("listening", function () {
+    console.log("listening on port 8080");
+});
+var io = new socket_io_1.Server(httpServer, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+    },
+});
 var emitOffer = function (peer) { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
         io.emit("server_offer", {
             id: peer.id,
-            open_to_handshake: peer.open_to_handshake,
-            offerDescription: peer.offerDescription, // the offer description
+            offerDescription: peer.offerDescription,
+            open_to_handshake: peer.open_to_handshake, // if the initial offer holder is open to handshake
         });
         return [2 /*return*/];
     });
@@ -127,6 +132,4 @@ io.on("listening", function () {
 io.on("error", function (err) {
     console.log(err);
 });
-server.listen(8080, function () {
-    console.log("Listening on http://0.0.0.0:8080");
-});
+httpServer.listen(8080);
