@@ -1,5 +1,4 @@
 import { Server } from "socket.io";
-import supabase from "./useSupabase";
 const path = require("path");
 const { createServer } = require("http");
 
@@ -18,40 +17,6 @@ const io = new Server(httpServer, {
 
 const emitOffer = async (peer: any) => {};
 
-const matchmaking = supabase
-  .channel("any")
-  .on(
-    "postgres_changes",
-    { event: "INSERT", schema: "public", table: "matchmaking" },
-    async (payload) => {
-      console.log(payload);
-
-      // new offers are emitted to all clients on ws
-      io.emit("server_offer", {
-        id: payload.new.id, // id of the initial offer holder
-        offerDescription: payload.new.offerDescription, // the offer description
-      });
-    }
-  );
-
-const matchmaking1 = supabase
-  .channel("any")
-  .on(
-    "postgres_changes",
-    { event: "UPDATE", schema: "public", table: "matchmaking" },
-    async (payload) => {
-      console.log(payload);
-
-      io.emit("server_offer", {
-        id: payload.new.id, // id of the initial offer holder
-        offerDescription: payload.new.offerDescription, // the offer description
-      });
-    }
-  );
-
-matchmaking.subscribe();
-matchmaking1.subscribe();
-
 io.on("connection", (socket) => {
   socket.on("enter_matchmaking", async (arg, callback) => {
     // more user information here later (socials, username, profile_picture, etc.)
@@ -61,25 +26,14 @@ io.on("connection", (socket) => {
     }
 
     try {
-      const { data, error } = await supabase.from("matchmaking").insert({
+      io.emit("new_user", {
         id: arg.id,
-        offerDescription: arg.offerDescription,
+        offferDescription: arg.offerDescription,
+        // more user information here later (socials, username, profile_picture, etc.)
       });
-      callback("entered matchmaking");
-    } catch (error) {
-      console.log(error);
-      if (error?.code === "23505") {
-        const { data, error } = await supabase
-          .from("matchmaking")
-          .update({
-            offerDescription: arg.offerDescription,
-          })
-          .eq("id", arg.id);
-        if (!error) callback("Updated existing offer description");
-        else callback(error);
-      } else {
-        callback(error);
-      }
+      callback("success");
+    } catch (err) {
+      callback(err);
     }
   });
 
@@ -100,7 +54,7 @@ io.on("connection", (socket) => {
   /*
   a peer has found a match (they exchanged offers already) and is now sending ice candidates privately to the other peer
   */
-  socket.on("client_send_ice_candidate", (arg) => {
+  socket.on("send_ice", (arg) => {
     console.log(arg);
 
     io.emit("ice_candidate", {
