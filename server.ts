@@ -6,7 +6,7 @@ const { createServer } = require("http");
 const httpServer = createServer();
 
 httpServer.on("listening", () => {
-  console.log("listening on port 8080");
+  console.log("listening on port 3000");
 });
 
 const io = new Server(httpServer, {
@@ -99,11 +99,11 @@ io.on("connection", (socket) => {
 });
 
 io.on("listening", () => {
-  console.log("listening on port 8080");
+  console.log("listening on port 3000");
 });
 
 io.on("error", (err) => {
   console.log(err);
 });
 
-httpServer.listen(8080);
+httpServer.listen(3000);
