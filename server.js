@@ -42,7 +42,7 @@ var path = require("path");
 var createServer = require("http").createServer;
 var httpServer = createServer();
 httpServer.on("listening", function () {
-    console.log("listening on port 8080");
+    console.log("listening on port 3000");
 });
 var io = new socket_io_1.Server(httpServer, {
     cors: {
@@ -69,41 +69,62 @@ var matchmaking = useSupabase_1.default
         return [2 /*return*/];
     });
 }); });
+var matchmaking1 = useSupabase_1.default
+    .channel("any")
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "matchmaking" }, function (payload) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        // new offers are emitted to all clients on ws, they all check if they are not the offer holder and if they are open to handshake then answer the offer
+        emitOffer(payload.new);
+        return [2 /*return*/];
+    });
+}); });
 matchmaking.subscribe();
+matchmaking1.subscribe();
 io.on("connection", function (socket) {
     console.log("a user connected");
     socket.on("enter_matchmaking", function (arg, callback) { return __awaiter(void 0, void 0, void 0, function () {
-        var _a, data, error;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        var _a, data, error, error_1, _b, data, error_2;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
                 case 0:
                     // more user information here later (socials, username, profile_picture, etc.)
                     if (!arg.id || arg.id.slice(0, 5) !== "user_") {
                         callback("invalid id");
                         return [2 /*return*/];
                     }
+                    _c.label = 1;
+                case 1:
+                    _c.trys.push([1, 3, , 7]);
                     return [4 /*yield*/, useSupabase_1.default.from("matchmaking").insert({
                             id: arg.id,
                             offerDescription: arg.offerDescription,
-                            open_to_handshake: arg.open_to_handshake,
                         })];
-                case 1:
-                    _a = _b.sent(), data = _a.data, error = _a.error;
-                    if (error) {
-                        if ((error === null || error === void 0 ? void 0 : error.code) === "23505") {
-                            console.log("already in matchmaking db");
-                            callback(undefined);
-                        }
-                        else {
-                            console.log(error);
-                            callback(error);
-                        }
-                    }
-                    else {
-                        console.log(arg.id + " successfully entered matchmaking db");
-                        callback(true);
-                    }
-                    return [2 /*return*/];
+                case 2:
+                    _a = _c.sent(), data = _a.data, error = _a.error;
+                    callback("entered matchmaking");
+                    return [3 /*break*/, 7];
+                case 3:
+                    error_1 = _c.sent();
+                    console.log(error_1);
+                    if (!((error_1 === null || error_1 === void 0 ? void 0 : error_1.code) === "23505")) return [3 /*break*/, 5];
+                    return [4 /*yield*/, useSupabase_1.default
+                            .from("matchmaking")
+                            .update({
+                            offerDescription: arg.offerDescription,
+                        })
+                            .eq("id", arg.id)];
+                case 4:
+                    _b = _c.sent(), data = _b.data, error_2 = _b.error;
+                    if (!error_2)
+                        callback("Updated existing offer description");
+                    else
+                        callback(error_2);
+                    return [3 /*break*/, 6];
+                case 5:
+                    callback(error_1);
+                    _c.label = 6;
+                case 6: return [3 /*break*/, 7];
+                case 7: return [2 /*return*/];
             }
         });
     }); });
@@ -112,7 +133,8 @@ io.on("connection", function (socket) {
     it is being sent privately to the initial offer holder
     */
     socket.on("client_answer", function (arg) {
-        io.to(arg.id).emit("server_answer", {
+        console.log("transmiting answer to initial peer", arg);
+        io.emit("server_answer", {
             id: arg.id,
             remoteID: arg.remoteID,
             answerDescription: arg.answerDescription,
@@ -121,10 +143,9 @@ io.on("connection", function (socket) {
     /*
     a peer has found a match (they exchanged offers already) and is now sending ice candidates privately to the other peer
     */
-    socket.on("client_send_ice_candidate_private", function (arg) {
+    socket.on("client_send_ice_candidate", function (arg) {
         console.log(arg);
-        socket.join(arg.id);
-        io.to(arg.id).emit("server_transmit_ice_candidate_private", {
+        io.emit("ice_candidate", {
             id: arg.id,
             remoteID: arg.remoteID,
             ice_candidate: arg.ice_candidate,
@@ -133,9 +154,9 @@ io.on("connection", function (socket) {
     });
 });
 io.on("listening", function () {
-    console.log("listening on port 8080");
+    console.log("listening on port 3000");
 });
 io.on("error", function (err) {
     console.log(err);
 });
-httpServer.listen(8080);
+httpServer.listen(3000);

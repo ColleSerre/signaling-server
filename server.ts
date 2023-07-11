@@ -35,11 +35,21 @@ const matchmaking = supabase
     }
   );
 
+const matchmaking1 = supabase
+  .channel("any")
+  .on(
+    "postgres_changes",
+    { event: "UPDATE", schema: "public", table: "matchmaking" },
+    async (payload) => {
+      // new offers are emitted to all clients on ws, they all check if they are not the offer holder and if they are open to handshake then answer the offer
+      emitOffer(payload.new);
+    }
+  );
+
 matchmaking.subscribe();
+matchmaking1.subscribe();
 
 io.on("connection", (socket) => {
-  console.log("a user connected");
-
   socket.on("enter_matchmaking", async (arg, callback) => {
     // more user information here later (socials, username, profile_picture, etc.)
     if (!arg.id || arg.id.slice(0, 5) !== "user_") {
@@ -47,23 +57,26 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const { data, error } = await supabase.from("matchmaking").insert({
-      id: arg.id,
-      offerDescription: arg.offerDescription,
-      open_to_handshake: arg.open_to_handshake,
-    });
-
-    if (error) {
+    try {
+      const { data, error } = await supabase.from("matchmaking").insert({
+        id: arg.id,
+        offerDescription: arg.offerDescription,
+      });
+      callback("entered matchmaking");
+    } catch (error) {
+      console.log(error);
       if (error?.code === "23505") {
-        console.log("already in matchmaking db");
-        callback(undefined);
+        const { data, error } = await supabase
+          .from("matchmaking")
+          .update({
+            offerDescription: arg.offerDescription,
+          })
+          .eq("id", arg.id);
+        if (!error) callback("Updated existing offer description");
+        else callback(error);
       } else {
-        console.log(error);
         callback(error);
       }
-    } else {
-      console.log(arg.id + " successfully entered matchmaking db");
-      callback(true);
     }
   });
 
@@ -84,12 +97,10 @@ io.on("connection", (socket) => {
   /*
   a peer has found a match (they exchanged offers already) and is now sending ice candidates privately to the other peer
   */
-  socket.on("client_send_ice_candidate_private", (arg) => {
+  socket.on("client_send_ice_candidate", (arg) => {
     console.log(arg);
 
-    socket.join(arg.id);
-
-    io.to(arg.id).emit("server_transmit_ice_candidate_private", {
+    io.emit("ice_candidate", {
       id: arg.id,
       remoteID: arg.remoteID,
       ice_candidate: arg.ice_candidate,
