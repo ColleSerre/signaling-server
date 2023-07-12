@@ -67,13 +67,18 @@ io.on("connection", (socket) => {
   socket.on("send_ice", (arg) => {
     console.log(arg);
 
-    io.emit("ice_candidate", {
-      id: arg.id,
-      remoteID: arg.remoteID,
-      ice_candidate: arg.ice_candidate,
-    });
+    if (!arg.id || !arg.remoteID || !arg.ice_candidate) {
+      console.log("invalid ice candidate");
+      return;
+    } else {
+      io.emit("ice_candidate", {
+        id: arg.id,
+        remoteID: arg.remoteID,
+        ice_candidate: arg.ice_candidate,
+      });
 
-    console.log("transmitted ice candidate to another peer");
+      console.log("transmitted ice candidate to another peer");
+    }
   });
 });
 
