@@ -80,6 +80,14 @@ io.on("connection", (socket) => {
       console.log("transmitted ice candidate to another peer");
     }
   });
+
+  // sometimes we need to renegotiate the connection so one peer resends an offer and the other peer resends an answer
+  socket.on("renegotiating_offer", (arg) => {
+    io.emit("renegotiation", {
+      id: arg.id,
+      remoteID: arg.remoteID,
+      offerDescription: arg.offerDescription,
+  });
 });
 
 io.on("listening", () => {
