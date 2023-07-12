@@ -44,7 +44,8 @@ io.on("connection", (socket) => {
         .update({ offerDescription: arg.offerDescription })
         .eq("id", arg.id);
       if (!error) callback("updated entry");
-    } else callback(error);
+      else callback(error);
+    }
   });
 
   /* 
@@ -87,6 +88,7 @@ io.on("connection", (socket) => {
       id: arg.id,
       remoteID: arg.remoteID,
       offerDescription: arg.offerDescription,
+    });
   });
 });
 

@@ -83,11 +83,10 @@ io.on("connection", function (socket) {
                     _b = _c.sent(), data_1 = _b.data, error_1 = _b.error;
                     if (!error_1)
                         callback("updated entry");
-                    return [3 /*break*/, 4];
-                case 3:
-                    callback(error);
-                    _c.label = 4;
-                case 4: return [2 /*return*/];
+                    else
+                        callback(error_1);
+                    _c.label = 3;
+                case 3: return [2 /*return*/];
             }
         });
     }); });
@@ -108,12 +107,26 @@ io.on("connection", function (socket) {
     */
     socket.on("send_ice", function (arg) {
         console.log(arg);
-        io.emit("ice_candidate", {
+        if (!arg.sender || !arg.receiver || !arg.ice_candidate) {
+            console.log("invalid ice candidate");
+            return;
+        }
+        else {
+            io.emit("ice_candidate", {
+                sender: arg.sender,
+                receiver: arg.receiver,
+                ice_candidate: arg.ice_candidate,
+            });
+            console.log("transmitted ice candidate to another peer");
+        }
+    });
+    // sometimes we need to renegotiate the connection so one peer resends an offer and the other peer resends an answer
+    socket.on("renegotiating_offer", function (arg) {
+        io.emit("renegotiation", {
             id: arg.id,
             remoteID: arg.remoteID,
-            ice_candidate: arg.ice_candidate,
+            offerDescription: arg.offerDescription,
         });
-        console.log("transmitted ice candidate to another peer");
     });
 });
 io.on("listening", function () {
