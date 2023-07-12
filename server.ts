@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import supabase from "./useSupabase";
 const path = require("path");
 const { createServer } = require("http");
 
@@ -15,7 +16,9 @@ const io = new Server(httpServer, {
   },
 });
 
-const emitOffer = async (peer: any) => {};
+io.on("open", () => {
+  console.log("socket.io server open");
+});
 
 io.on("connection", (socket) => {
   socket.on("enter_matchmaking", async (arg, callback) => {
@@ -25,16 +28,23 @@ io.on("connection", (socket) => {
       return;
     }
 
-    try {
-      io.emit("new_user", {
+    const { data, error } = await supabase.from("matchmaking").insert([
+      {
         id: arg.id,
         offerDescription: arg.offerDescription,
-        // more user information here later (socials, username, profile_picture, etc.)
-      });
-      callback("success");
-    } catch (err) {
-      callback(err);
-    }
+      },
+    ]);
+
+    if (!error) callback("success");
+
+    if (error?.code === "23505") {
+      // duplicate key error
+      const { data, error } = await supabase
+        .from("matchmaking")
+        .update({ offerDescription: arg.offerDescription })
+        .eq("id", arg.id);
+      if (!error) callback("updated entry");
+    } else callback(error);
   });
 
   /* 
