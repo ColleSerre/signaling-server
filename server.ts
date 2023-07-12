@@ -67,13 +67,13 @@ io.on("connection", (socket) => {
   socket.on("send_ice", (arg) => {
     console.log(arg);
 
-    if (!arg.id || !arg.remoteID || !arg.ice_candidate) {
+    if (!arg.sender || !arg.receiver || !arg.ice_candidate) {
       console.log("invalid ice candidate");
       return;
     } else {
       io.emit("ice_candidate", {
-        id: arg.id,
-        remoteID: arg.remoteID,
+        sender: arg.sender,
+        receiver: arg.receiver,
         ice_candidate: arg.ice_candidate,
       });
 
