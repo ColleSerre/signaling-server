@@ -36,15 +36,49 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv").config();
 var socket_io_1 = require("socket.io");
 var useSupabase_1 = require("./useSupabase");
-var path = require("path");
-var createServer = require("http").createServer;
-var httpServer = createServer();
-httpServer.on("listening", function () {
-    console.log("listening on port 3000");
+var express = require("express");
+var http = require("http");
+var openai_1 = require("openai");
+var httpServer = express;
+console.log(process.env.OPENAI_API_KEY);
+var configuration = new openai_1.Configuration({
+    apiKey: "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",
 });
-var io = new socket_io_1.Server(httpServer, {
+var openai = new openai_1.OpenAIApi(configuration);
+var app = express();
+var server = http.createServer(app);
+// create a new api endpoint on /api/ai_approval
+app.post("/api/ai_approval", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var prompt, completion;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                console.log(req.query);
+                prompt = {
+                    topic: req.query.topic,
+                };
+                return [4 /*yield*/, openai.createChatCompletion({
+                        model: "gpt-3.5-turbo",
+                        messages: [
+                            {
+                                role: "system",
+                                content: "You will be provided with a topic a user is attempting to submit for approval on an online social media platform. You should check if the topic is compliant to the community guidelines. Although slang, familiar language and cursing is allowed, the community guidelines exclude topics like: * Hate speech * Violence * LGBTQIA+-phobic language * Racist speech * References to right wing dogwhistles * Adult content (excluding explicitly for educative purposes) * Promotion of gambling and possible scams. You should respond as follows: Answer in json while respecting the standards of its syntax. If the topic is cleared to be published and isn't harmful, set the status property 'approved'. Else, set it to 'ai-denied' for further human moderation. Always include a 'topic' property, which will contain the submitted topic",
+                            },
+                            { role: "user", content: prompt.topic },
+                        ],
+                    })];
+            case 1:
+                completion = _a.sent();
+                console.log(completion.data.choices[0]);
+                res.send(completion.data.choices[0]).status(200);
+                return [2 /*return*/];
+        }
+    });
+}); });
+var io = new socket_io_1.Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"],
@@ -135,4 +169,4 @@ io.on("listening", function () {
 io.on("error", function (err) {
     console.log(err);
 });
-httpServer.listen(3000);
+server.listen(3000);

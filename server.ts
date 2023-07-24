@@ -1,15 +1,44 @@
+require("dotenv").config();
 import { Server } from "socket.io";
 import supabase from "./useSupabase";
-const path = require("path");
-const { createServer } = require("http");
+const express = require("express");
+const http = require("http");
+import { Configuration, OpenAIApi } from "openai";
 
-const httpServer = createServer();
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
-httpServer.on("listening", () => {
-  console.log("listening on port 3000");
+const app = express();
+const server = http.createServer(app);
+
+// create a new api endpoint on /api/ai_approval
+
+app.post("/api/ai_approval", async (req, res) => {
+  console.log(req.query);
+  // get post parameters
+  const prompt = {
+    topic: req.query.topic,
+  };
+
+  const completion = await openai.createChatCompletion({
+    model: "gpt-3.5-turbo",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You will be provided with a topic a user is attempting to submit for approval on an online social media platform. You should check if the topic is compliant to the community guidelines. Although slang, familiar language and cursing is allowed, the community guidelines exclude topics like: * Hate speech * Violence * LGBTQIA+-phobic language * Racist speech * References to right wing dogwhistles * Adult content (excluding explicitly for educative purposes) * Promotion of gambling and possible scams. You should respond as follows: Answer in json while respecting the standards of its syntax. If the topic is cleared to be published and isn't harmful, set the status property 'approved'. Else, set it to 'ai-denied' for further human moderation. Always include a 'topic' property, which will contain the submitted topic",
+      },
+      { role: "user", content: prompt.topic },
+    ],
+  });
+
+  console.log(completion.data.choices[0]);
+  res.send(completion.data.choices[0]);
 });
 
-const io = new Server(httpServer, {
+const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
@@ -73,8 +102,8 @@ io.on("connection", (socket) => {
       return;
     } else {
       io.emit("ice_candidate", {
-        sender: arg.sender,
-        receiver: arg.receiver,
+        sender: arg.id,
+        receiver: arg.remoteID,
         ice_candidate: arg.ice_candidate,
       });
 
@@ -100,4 +129,4 @@ io.on("error", (err) => {
   console.log(err);
 });
 
-httpServer.listen(3000);
+server.listen(3000);
