@@ -63,77 +63,7 @@ io.on("open", () => {
 });
 
 io.on("connection", (socket) => {
-  socket.on("enter_matchmaking", async (arg, callback) => {
-    // more user information here later (socials, username, profile_picture, etc.)
-    if (!arg.id || arg.id.slice(0, 5) !== "user_") {
-      callback("invalid id");
-      return;
-    }
-
-    const { data, error } = await supabase.from("matchmaking").insert([
-      {
-        id: arg.id,
-        offerDescription: arg.offerDescription,
-      },
-    ]);
-
-    if (!error) callback("success");
-
-    if (error?.code === "23505") {
-      // duplicate key error
-      const { data, error } = await supabase
-        .from("matchmaking")
-        .update({ offerDescription: arg.offerDescription })
-        .eq("id", arg.id);
-      if (!error) callback("updated entry");
-      else callback(error);
-    }
-  });
-
-  /* 
-  an interested peer that is open to handshake sent their answer
-  it is being sent privately to the initial offer holder
-  */
-
-  socket.on("client_answer", (arg) => {
-    console.log("transmiting answer to initial peer", arg);
-    io.emit("server_answer", {
-      id: arg.id, // id of the initial sender
-      remoteID: arg.remoteID, // id of the responder
-      answerDescription: arg.answerDescription,
-    });
-  });
-
-  /*
-  a peer has found a match (they exchanged offers already) and is now sending ice candidates privately to the other peer
-  */
-  socket.on("send_ice", (arg) => {
-    console.log(arg);
-
-    if (!arg.sender || !arg.receiver || !arg.ice_candidate) {
-      console.log("invalid ice candidate");
-      return;
-    } else {
-      io.emit("ice_candidate", {
-        sender: arg.id,
-        receiver: arg.remoteID,
-        ice_candidate: arg.ice_candidate,
-      });
-
-      console.log("transmitted ice candidate to another peer");
-    }
-  });
-
-  // sometimes we need to renegotiate the connection so one peer resends an offer and the other peer resends an answer
-  socket.on("renegotiating_offer", (arg) => {
-    io.emit("renegotiation", {
-      id: arg.id,
-      remoteID: arg.remoteID,
-      offerDescription: arg.offerDescription,
-    });
-  });
-
-  // handling end of calls
+  console.log("socket.io client connected");
 
   const endCall = () => {
     console.log("ending call", connections);
@@ -148,16 +78,11 @@ io.on("connection", (socket) => {
       console.log("Connection doesn't have a remote peer");
       return;
     }
+    console.log("closing call with", remotePeer);
     // send a message to the remote peer telling it to close the call on their end
     // eg: removing remote video stream, closing the peer connection, setting as available in db
     io.emit("callClosed", remotePeer);
   };
-
-  socket.on("uid", async (uid: string) => {
-    console.log(uid);
-    connections.set(socket.id, { uid: uid });
-    console.log(connections);
-  });
 
   // callStart takes two args, peer1 which is the emitter and peer2 which is the remotePeer of peer1
   socket.on("callStart", (peer1: string, peer2: string) => {
@@ -166,9 +91,9 @@ io.on("connection", (socket) => {
     console.log(connections);
   });
 
-  socket.on("endCall", endCall);
+  socket.on("endCall", () => endCall());
 
-  socket.on("disconnect", endCall);
+  socket.on("disconnect", () => endCall());
 });
 
 io.on("listening", () => {
